@@ -33,10 +33,10 @@ TruEnd_inner <- function(vGiven, thres=0, retType, minLength=2, nonTZB_Val=-1, o
   vAge <- c(1:length(vGiven)) + (observedAge - length(vGiven))
   
   # - Find positions in reversed vector where threshold is triggered
-  vFound <- which(rev(vGiven) <= thres)
+  vFound <- which(rev(vGiven) <= thres & rev(vGiven) >= 0) # Second condition handles negative/overfunded balances
   
   # - Find complementing position in reversed vector where threshold is first NOT triggered
-  lastNotTrig <- which(rev(vGiven) > thres)[1]
+  lastNotTrig <- which(rev(vGiven) > thres | rev(vGiven) < 0)[1] # Second condition handles negative/overfunded balances
   
   # - Logic check: Only execute if any regimes are isolated and if the last of these regimes 
   # exceed a given minimum length, bearing in mind that the "true end" itself would be <= [thres] 
