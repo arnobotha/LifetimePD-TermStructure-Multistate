@@ -78,28 +78,28 @@ k <- 6 # Probation period
 
 # -- Path variables | User-dependent
 
-if (Sys.getenv("USERNAME") == "Arno Botha") { # Dr Arno Botha | Kralkatorrik-machine
+if (Sys.getenv("USERNAME") == "arnos") { # Dr Arno Botha | Kralkatorrik-machine
   # - Common path for saving large R-objects as back-up and/or as reusable checkpoints
-  genPath <- "E:/DataDump/RetailMortgages-FNB/LifetimePD-TermStructure-MarkovModels_Data/"
+  genPath <- "E:/DataDump/RetailMortgages-FNB/LifetimePD-TermStructure-Multistate_Data/"
   # - Common path from which raw big datasets are imported
   genRawPath <- "E:/DataDump/RetailMortgages-FNB/"
   # - Common path for sourcing R-scripts in main codebase
-  path_cust <- "E:/Backupz/Google Drive/WorkLife/Analytix/R&D Codebases/LifetimePD-TermStructure-MarkovModels/Scripts/"
+  path_cust <- "E:/Backupz/Google Drive/WorkLife/Analytix/R&D Codebases/LifetimePD-TermStructure-Multistate/Scripts/"
   # - Common path for storing important (but small!) R-objects as back-up
-  genObjPath <- "E:/Backupz/Google Drive/WorkLife/Analytix/R&D Codebases/LifetimePD-TermStructure-MarkovModels/Objects/"
+  genObjPath <- "E:/Backupz/Google Drive/WorkLife/Analytix/R&D Codebases/LifetimePD-TermStructure-Multistate/Objects/"
   # - Common path for saving important analytics and figures
-  genFigPath <- "E:/Backupz/Google Drive/WorkLife/Analytix/R&D Codebases/LifetimePD-TermStructure-MarkovModels/Figures/"
+  genFigPath <- "E:/Backupz/Google Drive/WorkLife/Analytix/R&D Codebases/LifetimePD-TermStructure-Multistate/Figures/"
 } else if (toupper(Sys.getenv("USERNAME")) == "R5668395") { # Roland Roland | Botha-machine
   # - Common path for saving large R-objects as back-up and/or as reusable checkpoints
   genPath <- "C:/Data/Classifier-Diagnostics_Data/"
   # - Common path from which raw big datasets are imported
   genRawPath <- "C:/Data/"
   # - Common path for sourcing R-scripts in main codebase
-  path_cust <- "C:/Users/R5668395/Documents/GitHub Markov/LifetimePD-TermStructure-MarkovModels/Scripts/"
+  path_cust <- "C:/Users/R5668395/Documents/GitHub Markov/LifetimePD-TermStructure-Multistate/Scripts/"
   # - Common path for storing important (but small!) R-objects as back-up
-  genObjPath <- "C:/Users/R5668395/Documents/GitHub Markov/LifetimePD-TermStructure-MarkovModels/Objects/"
+  genObjPath <- "C:/Users/R5668395/Documents/GitHub Markov/LifetimePD-TermStructure-Multistate/Objects/"
   # - Common path for saving important analytics and figures
-  genFigPath <- "C:/Users/R5668395/Documents/GitHub Markov/LifetimePD-TermStructure-MarkovModels/Figures/"
+  genFigPath <- "C:/Users/R5668395/Documents/GitHub Markov/LifetimePD-TermStructure-Multistate/Figures/"
 } else {
   stop("User-specific paths not set for current user: ", Sys.getenv("USERNAME"), ". Please fix in Setup script (0.Setup.R) before continuing")
 }

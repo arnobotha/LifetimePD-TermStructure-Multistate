@@ -46,6 +46,30 @@ getMemUsage <- function(limit=1000){
 
 
 
+# -- Custom summary function in replicating describe() due to its recent performance issues on large datasets
+describe2 <- function(x) {
+  #x <- dat.raw$Arrears
+  result <- c(
+    n = length(x),
+    mean = mean(x, na.rm = TRUE),
+    sd = sd(x, na.rm = TRUE),
+    min = min(x, na.rm = TRUE),
+    q = quantile(x, 0.05, na.rm = TRUE),
+    q = quantile(x, 0.1, na.rm = TRUE),
+    q = quantile(x, 0.25, na.rm = TRUE),
+    median = median(x, na.rm = TRUE),
+    q = quantile(x, 0.75, na.rm = TRUE),
+    q = quantile(x, 0.9, na.rm = TRUE),
+    q = quantile(x, 0.95, na.rm = TRUE),
+    max = max(x, na.rm = TRUE),
+    missing = sum(is.na(x))
+  )
+  result2 <- sort(x)[1:5]
+  result3 <- rev(sort(x))[1:5]
+  return(list(summary=result, lowest=result2, highest=result3))
+}
+
+
 
 # -------- Cleaning functions (Missing/extreme value treatments)
 
