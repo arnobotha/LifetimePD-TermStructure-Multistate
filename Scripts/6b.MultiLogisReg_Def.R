@@ -33,23 +33,6 @@
 if (!exists('datCredit_train')) unpack.ffdf(paste0(genPath,"creditdata_train"), tempPath)
 if (!exists('datCredit_valid')) unpack.ffdf(paste0(genPath,"creditdata_valid"), tempPath)
 
-# - Bespoke model evaluation function
-evalMLR <- function(model, model_base, datGiven, targetFld, predClass) {
-  require(data.table); require(scales)
-  # - Test conditions
-  # model <- modMLR; model_base <- modMLR_base_def; datGiven <- datCredit_train[MarkovStatus=="Def",]
-  # targetFld = "Target_FromD"; predClass <- "Perf"
-  result1 <- AIC(model) # 1164537 
-  result2 <- coefDeter_glm(model, model_base) # 0.29%
-  matPred <- predict(model, newdata=datGiven, type="probs")
-  actuals <- ifelse(datGiven[[targetFld]] == predClass, 1,0)
-  result3 <- roc(response=actuals, predictor = matPred[, predClass])
-  objResults <- data.table(AIC=comma(result1), result2, AUC=percent(result3$auc,accuracy=0.01))
-  return(objResults)
-  # - Cleanup, if run interactively
-  rm(result1, result2, matPred, actuals, result3, objResults, model, model_base, datGiven, targetFld, predClass)
-}
-
 # - Extreme down-sample the training data, used only for stepwise forward selection procedure and final confirmation
 # of statistical significance
 smp_size <- 50000 # Number of keys/loans during the subsampling step
@@ -1202,3 +1185,31 @@ ptm <- proc.time() # for runtime calculations (ignore)
 modLR_Result <- dropterm(modMLR_def, trace=F, test="Chisq", maxit=50)
 proc.time() - ptm # IGNORE: elapsed runtime; 28.9m
 ### RESULTS: All variables are significant
+
+
+
+
+# ------ 8. Fit final model 
+# - Confirm that required data objects are loaded into memory
+if (!exists('datCredit_train')) unpack.ffdf(paste0(genPath,"creditdata_train"), tempPath)
+if (!exists('datCredit_valid')) unpack.ffdf(paste0(genPath,"creditdata_valid"), tempPath)
+
+# - Fit an empty model as a performance gain, used within some diagnostic functions
+modMLR_base_def <- multinom(Target_FromD ~  1, 
+                            data = datCredit_train[MarkovStatus=="Def",],maxit=1000)
+
+# - Train model
+modMLR_def <- multinom(Target_FromD ~ DefaultStatus1_Aggr_Prop_Lag_5 + CreditLeverage_Aggr + g0_Delinq_Ave + 
+                         g0_Delinq_fac + slc_acct_arr_dir_3 + TimeInDelinqState + g0_Delinq_Num + g0_Delinq_SD_9 + 
+                         ns(slc_acct_roll_ever_24_imputed_mean,6) + pmnt_method_grp + ns(InterestRate_Margin,3) + Principal_Real + 
+                         BalanceToPrincipal + AgeToTerm + TimeInStateSpell + 
+                         M_Repo_Rate + M_RealGDP_Growth_12 + M_DTI_Growth + M_Inflation_Growth_6, 
+                       data = datCredit_train[MarkovStatus=="Def",],maxit=1000)
+evalMLR(modMLR_def, modMLR_base_def, datCredit_train[MarkovStatus=="Def",], targetFld="Target_FromD", predClass="Perf")
+### RESULTS: AIC:   183,464 ; McFadden R^2:  28.43% ; AUC:  96.24%
+
+
+# --- Cleanup
+rm(datCredit_train, datCredit_train_sub, datCredit_valid, datKeys, datKeys_sampled, 
+   modLR_Result, modMLR, modMLR_base_def, modMLR_full, modMLR_full_sub,
+   modMLR_single_sub, modMLR_def); gc()

@@ -662,8 +662,8 @@ varImport_logit <- function(logit_model, method="stdCoef_ZScores", sig_level=0.0
 
 # --- Pseudo R^2 measures for classifiers
 # Calculate a pseudo coefficient of determination (R^2) \in [0,1] for glm assuming binary
-# logistic regression as default, based on the "null deviance" in likelihoods
-# between the candidate model and the intercept-only (or "empty/worst/null") model.
+# logistic regression as default, based on the log-likelihoods of a given model and an
+# intercept-only model (or baseline model)
 # NOTE: This generic R^2 is NOT equal to the typical R^2 used in linear regression, i.e., it does
 # NOT explain the % of variance explained by the model; but rather it denotes the %-valued degree
 # to which the candidate's fit can be deemed as "perfect".
@@ -671,7 +671,9 @@ varImport_logit <- function(logit_model, method="stdCoef_ZScores", sig_level=0.0
 # see https://bookdown.org/egarpor/SSS2-UC3M/logreg-deviance.html ; https://web.pdx.edu/~newsomj/cdaclass/ho_logistic.pdf; 
 # https://statisticalhorizons.com/r2logistic/
 # https://stats.stackexchange.com/questions/8511/how-to-calculate-pseudo-r2-from-rs-logistic-regression
-coefDeter_glm <- function(model, model_base = NA) {
+coefDeter_glm <- function(model, model_base = NA, weightsGiven=F) {
+  # Testing conditions:
+  # model <- modLR; model_base <- modLR_base
   
   # - Safety check
   if (!any(class(model) %in% c("glm","multinom"))) stop("Specified model object is not of class 'glm' or 'lm'. Exiting .. ")
@@ -682,7 +684,7 @@ coefDeter_glm <- function(model, model_base = NA) {
   require(scales) # for formatting of results
   L_full <- logLik(model) # log-likelihood of fitted model, ln(L_M)
   nobs <- attr(L_full, "nobs") # sample size, same as NROW(model$model)
-
+  
   # Fit a base/empty model if not available
   if (any(is.na(model_base))) {
     orig_formula <- deparse(unlist(list(model$formula, formula(model), model$call$formula))[[1]]) # model formula
@@ -704,13 +706,25 @@ coefDeter_glm <- function(model, model_base = NA) {
   # -- Implement the McFadden pseudo R^2 measure from McFadden1974, R^2 = 1 - log(L_M)/log(L_0)
   # NOTE: null deviance L_0 plays an analogous role to the residual sum of squares in linear regression, therefore
   # McFadden's R^2 corresponds to a proportional reduction in "error variance", according to Allison2013 (https://statisticalhorizons.com/r2logistic/)
-  # NOTE2: deviance (L_M) and null deviance (L_0) within a GLM-object is already the log-likelihood since deviance = -2*ln(L_M) by definition
   # https://stats.stackexchange.com/questions/8511/how-to-calculate-pseudo-r2-from-rs-logistic-regression
-  if (any(class(model) == "multinom") ) {
-    coef_McFadden <- 1 - (as.numeric(L_full) / as.numeric(L_base))
-  } else coef_McFadden <- 1 - model$deviance / model$null.deviance
+  coef_McFadden <- 1 - (as.numeric(L_full) / as.numeric(L_base))
   
-  if ( !all.equal(coef_McFadden, as.numeric(1 - (-2*L_full)/(-2*L_base) ) ) ) stop("ERROR: Internal function error in calculating & verifying McFadden's pseudo R^2-measure")
+  # The following check will fail if the given model does not contain an intercept
+  if (attr(terms(model), "intercept") != 1) {
+    cat("NOTE: Provided model contains no intercept term.\n")
+  }
+  
+  if (weightsGiven == T & any(model$prior.weights > 1)) {
+    # NOTE: McFadden's pseudo-R^2 is computed using the ratio of model likelihoods.
+    # For weightsGiven==T, the model is estimated under a quasi-binomial specification (and thus lacks a 
+    # fully defined likelihood).
+    cat("NOTE: Model is fitted using a quasi-likelihood approach (quasi-binomial specification) and therefore does not admit 
+        a fully defined likelihood function. Consequently, likelihood-based quantities (e.g., log-likelihood, AIC)
+        are not formally available. However, since the mean and variance structure are specified within the quasi-likelihood framework,
+        inference proceeds via the corresponding quasi-likelihood (estimating equations), which remains well-defined.
+        This is important context for calculating the McFadden pesudo R^2, which ordinarily requires log-likelihood values,
+        but is now computed from the implied binomial likelihood kernel.")
+  }
   
   
   # -- Implement Cox-Snell R^2 measure from Cox1983, which according to Allison2013 is more a "generalized" R^2 measure than pseudo,
@@ -748,7 +762,25 @@ coefDeter_glm <- function(model, model_base = NA) {
 # datTrain_simp <- data.table(ISLR::Default); datTrain_simp[, `:=`(default=as.factor(default), student=as.factor(student))]
 # logit_model <- glm(default ~ student + balance + income, data=datTrain_simp, family="binomial")
 # coefDeter_glm(logit_model)
-### RESULTS: candidate is 46% (McFadden) better than null-model in terms of its deviance
+### RESULTS: candidate is 46% (McFadden) better than null-model
+
+
+# - Bespoke model evaluation function
+evalMLR <- function(model, model_base=NA, datGiven, targetFld, predClass) {
+  require(data.table); require(scales)
+  # - Test conditions
+  # model <- modMLR; model_base <- modMLR_base_def; datGiven <- datCredit_train[MarkovStatus=="Def",]
+  # targetFld = "Target_FromD"; predClass <- "Perf"
+  result1 <- AIC(model) # 1164537 
+  result2 <- coefDeter_glm(model, model_base) # 0.29%
+  matPred <- predict(model, newdata=datGiven, type="probs")
+  actuals <- ifelse(datGiven[[targetFld]] == predClass, 1,0)
+  result3 <- roc(response=actuals, predictor = matPred[, predClass])
+  objResults <- data.table(AIC=comma(result1), result2, AUC=percent(result3$auc,accuracy=0.01))
+  return(objResults)
+  # - Cleanup, if run interactively
+  rm(result1, result2, matPred, actuals, result3, objResults, model, model_base, datGiven, targetFld, predClass)
+}
 
 
 # --- Residual Deviance measures
